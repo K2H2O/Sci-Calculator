@@ -21,7 +21,10 @@
             <button class="clear" value="C">C</button>
             <button class="operator" value="(">(</button>
             <button class="operator" value=")">)</button>
-            
+            <button class="operator" value="³">³</button>
+            <button class="operator" value="∛">∛</button>
+            <button class="operator" value="%">%</button>
+
             <button class="operator" value="/">/</button>
             <button value="7">7</button>
             <button value="8">8</button>  
@@ -119,120 +122,124 @@ prec['ln'] = 10;
 prec['log'] = 10;
 prec['_'] = 11;
 
+function Calculate(input) {
+    // Add support for implicit multiplication (e.g., 10(5+1))
+    input = input.replace(/(\d)(\()/g, '$1*(');
+    input = input.replace(/(\))(\d)/g, ')*$2');
+
+    // Convert input to infix array
+    const infixArray = toInfixArray(input);
+    // Convert infix to postfix
+    const postfixArray = toPostfixArray(infixArray, -1);
+    // Evaluate the postfix expression
+    const result = evaluatePostfix(postfixArray);
+
+    return result;
+}
+
 function toInfixArray(input) {
     const arr = [];
-    let str = "";
-    const functions = ["sin", "cos", "tan", "ln", "log", "e", "√", "π"];
+    let str = '';
+    const operators = '+-*/^%()';
+    const functions = ['sin', 'cos', 'tan', 'ln', 'log', '√', '³', '∛'];
 
     for (let i = 0; i < input.length; i++) {
-        if ("+*/()^%,".includes(input[i])) {
-            if (str.length > 0) arr.push(str);
-            arr.push(input[i]);
-            str = "";
+        const char = input[i];
+
+        if (char === 'π') {
+            if (str.length > 0) arr.push(str); // Push preceding number
+            arr.push(Math.PI.toString()); // Replace π with its numeric value
+            str = '';
+        } else if (char === 'e') {
+            if (str.length > 0) arr.push(str); // Push preceding number
+            arr.push(Math.E.toString()); // Replace e with its numeric value
+            str = '';
+        } else if (operators.includes(char)) {
+            if (str.length > 0) arr.push(str); // Push number or function
+            arr.push(char); // Push operator
+            str = '';
         } else if (functions.some(fn => input.startsWith(fn, i))) {
-            let func = functions.find(fn => input.startsWith(fn, i));
-            if (str.length > 0) arr.push(str);
-            arr.push(func);
-            i += func.length - 1;
-            str = "";
+            const func = functions.find(fn => input.startsWith(fn, i));
+            if (str.length > 0) arr.push(str); // Push preceding number
+            arr.push(func); // Push function
+            i += func.length - 1; // Skip over the function name
+            str = '';
         } else {
-            str += input[i];
+            str += char; // Accumulate numbers/characters
         }
     }
-    if (str.length > 0) arr.push(str);
+
+    if (str.length > 0) arr.push(str); // Push any remaining string
+    console.log(`Infix tokens: ${arr}`);
     return arr;
 }
 
-function toPostfixArray(input, max = -1) {
-    var stack = [];
-    var postfix = [];
-    var maxx = max;
-    if (maxx > input.length || maxx < 0) { maxx = input.length; }
-    
-    for (var i = 0; i < maxx; i++) {
-        if (prec[input[i]]) {
-            if (stack.length == 0) {
-                stack.push(input[i]);
-            } else if (input[i] == "0-") {
-                stack.push(input[i]);
-            } else if (prec[stack[stack.length - 1]] < prec[input[i]]) {
-                stack.push(input[i]);
-            } else if (stack[stack.length - 1] == "^" && input[i] == "^") {
-                stack.push(input[i]);
-            } else {
-                while (stack.length > 0 && prec[stack[stack.length - 1]] >= prec[input[i]]) {
-                    if (stack[stack.length - 1] == "^" && input[i] == "^") { break; }
-                    var last = stack[stack.length - 1];
-                    if (last == "0-" && isNumber(postfix[postfix.length - 1])) {
-                        postfix[postfix.length - 1] = "-" + postfix[postfix.length - 1];
-                    } else {
-                        postfix.push(last);
-                    }
-                    stack.pop();
-                }
-                stack.push(input[i]);
+
+function toPostfixArray(input) {
+    const stack = [];
+    const postfix = [];
+    const operators = Object.keys(prec);
+
+    for (const token of input) {
+        if (isNumber(token)) {
+            postfix.push(token); // Numbers go directly to the postfix array
+        } else if (token === '%') {
+            // Convert the preceding number to a percentage
+            const lastNumber = postfix.pop();
+            postfix.push((parseFloat(lastNumber) / 100).toString());
+        } else if (operators.includes(token)) {
+            while (
+                stack.length &&
+                prec[stack[stack.length - 1]] >= prec[token] &&
+                !(token === '^' && stack[stack.length - 1] === '^')
+            ) {
+                postfix.push(stack.pop());
             }
-        } else if (input[i] == '(' || input[i] == '{') {
-            stack.push(input[i]);
-        } else if (input[i] == ')') {
-            while (stack.length > 0 && stack[stack.length - 1] != "(") {
-                var last = stack[stack.length - 1];
-                if (last == "0-" && isNumber(postfix[postfix.length - 1])) {
-                    postfix[postfix.length - 1] = "-" + postfix[postfix.length - 1];
-                } else {
-                    postfix.push(last);
-                }
-                stack.pop();
+            stack.push(token);
+        } else if (token === '(') {
+            stack.push(token);
+        } else if (token === ')') {
+            while (stack.length && stack[stack.length - 1] !== '(') {
+                postfix.push(stack.pop());
             }
-            stack.pop(); // Remove the '(' from the stack
-        } else if (input[i] == '}') {
-            while (stack.length > 0 && stack[stack.length - 1] != "{") {
-                var last = stack[stack.length - 1];
-                if (last == "0-" && isNumber(postfix[postfix.length - 1])) {
-                    postfix[postfix.length - 1] = "-" + postfix[postfix.length - 1];
-                } else {
-                    postfix.push(last);
-                }
-                stack.pop();
-            }
-            stack.pop(); // Remove the '{' from the stack
-        } else {
-            postfix.push(input[i]);
+            stack.pop(); // Remove '(' from the stack
         }
     }
-    
-    if (max == -1) {
-        while (stack.length > 0) {
-            var last = stack[stack.length - 1];
-            if (last == "0-" && isNumber(postfix[postfix.length - 1])) {
-                postfix[postfix.length - 1] = "-" + postfix[postfix.length - 1];
-            } else {
-                postfix.push(last);
-            }
-            stack.pop();
-        }
-        return postfix;
+
+    // Pop remaining operators from the stack
+    while (stack.length) {
+        postfix.push(stack.pop());
     }
-    return { postfix: postfix, stack: stack };
+
+    console.log(`Postfix tokens: ${postfix}`);
+    return postfix;
 }
+
+
 function evaluatePostfix(postfix) {
     const stack = [];
+    console.log(`Evaluating postfix: ${postfix}`);
 
-    for (let token of postfix) {
+    for (const token of postfix) {
         if (isNumber(token)) {
             stack.push(parseFloat(token));
-        } else if (['sin', 'cos', 'tan', 'ln', 'log', 'e', '√', 'π'].includes(token)) {
+        } else if (['sin', 'cos', 'tan', 'ln', 'log', 'e', '√', 'π', '³', '∛'].includes(token)) {
             const operand = stack.pop();
-            stack.push(calculateFunction(token, operand));
+            const result = calculateFunction(token, operand);
+            console.log(`Function ${token}(${operand}) = ${result}`);
+            stack.push(result);
         } else {
             const b = stack.pop();
             const a = stack.pop();
-            stack.push(calculateOperator(token, a, b));
+            const result = calculateOperator(token, a, b);
+            console.log(`Operation ${a} ${token} ${b} = ${result}`);
+            stack.push(result);
         }
     }
 
-    return stack.pop();
+    return stack.length ? stack.pop() : NaN;
 }
+
 
 function calculateFunction(fn, value) {
     switch (fn) {
@@ -241,9 +248,11 @@ function calculateFunction(fn, value) {
         case 'tan': return Math.tan(value);
         case 'ln': return Math.log(value);
         case 'log': return Math.log10(value);
-        case 'e': return Math.exp(value);
+        case 'e': return Math.exp(1); // e constant
         case '√': return Math.sqrt(value);
         case 'π': return Math.PI;
+        case '³': return Math.pow(value, 3);
+        case '∛': return Math.cbrt(value); 
         default: throw new Error(`Unknown function: ${fn}`);
     }
 }
@@ -255,17 +264,16 @@ function calculateOperator(op, a, b) {
         case '*': return a * b;
         case '/': return a / b;
         case '^': return Math.pow(a, b);
-        case '%': return a % b;
+        case '%':
+            // `%` was already converted to a decimal in toPostfixArray
+            return b; // Treat as identity (already divided by 100)
         default: throw new Error(`Unknown operator: ${op}`);
     }
 }
 
-// Helper function to check if a token is a number
 function isNumber(value) {
-    return !isNaN(value) && !isNaN(parseFloat(value));
+    return /^-?\d+(\.\d+)?([eE][-+]?\d+)?$/.test(value);
 }
-
-        
     </script>
 </body>
 </html>
