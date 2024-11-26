@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scientific Calculator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <article class="calculator">
+        <input type="text"  
+ id="display" disabled>
+        <section class="buttons">
+            <button class="operator" value="√">√</button> 
+            <button class="operator" value="sin">sin</button>
+            <button class="operator" value="cos">cos</button>
+            <button class="operator" value="tan">tan</button>
+            <button class="operator" value="π">π</button>
+            <button class="operator" value="log">log</button>
+            <button class="operator" value="e">e</button>
+            <button class="operator" value="ln">ln</button>
+            <button class="clearAll" value="AC">AC</button>
+            <button class="clear" value="C">C</button>
+            <button class="operator" value="(">(</button>
+            <button class="operator" value=")">)</button>
+            
+            <button class="operator" value="/">/</button>
+            <button value="7">7</button>
+            <button value="8">8</button>  
+
+            <button value="9">9</button>
+            <button class="operator" value="*">*</button>
+            <button value="4">4</button>
+            <button value="5">5</button>
+            <button value="6">6</button>
+            <button class="operator" value="-">-</button>
+            <button value="1">1</button>
+            <button value="2">2</button>
+            <button value="3">3</button>
+            <button class="operator" value="+">+</button>  
+
+            <button value="0">0</button>
+            <button value=".">.</button>
+            <button class="equal" value="=">=</button>
+            <button class="operator" value="^">^</button>
+            <button class="operator" value="DEL">DEL</button>
+
+        </section>  
+
+    </article>
+    <script >
+        const display = document.getElementById('display');
+const buttons = document.querySelectorAll('button');
+
+let currentInput = '';
+
+buttons.forEach(button => {
+    button.addEventListener('click', () => {
+        const value = button.value;
+
+        if (value === '=') {
+            try {
+                const result = Calculate(currentInput);
+                display.value = result !== null ? result : "Error";
+                currentInput = ''; // Clear the input after evaluation
+            } catch (error) {
+                display.value = "Error: Invalid expression";
+            }
+        } else if (value === 'C') {
+            currentInput = '';
+            display.value = '';
+        } else if (value === 'AC') {
+            currentInput = '';
+            display.value = '';
+        } else if (value === 'DEL') {
+            currentInput = currentInput.slice(0, -1);
+            display.value = currentInput;
+        } else {
+            currentInput += value;
+            display.value = currentInput;
+        }
+    });
+});
+
+function Calculate(input) {
+    // Convert input to infix array
+    var arr = toInfixArray(input);
+    // Convert infix to postfix array
+    var postfix = toPostfixArray(arr, -1);
+    // Evaluate the postfix expression
+    var result = evaluatePostfix(postfix);
+    return result;
+}
+
+var prec = {};
+prec[','] = 1;
+prec['='] = 1.5;
+prec['<='] = 1.5;
+prec['>='] = 1.5;
+prec['=='] = 1.5;
+prec['!='] = 1.5;
+prec['>'] = 1.5;
+prec['<'] = 1.5;
+prec['+'] = 2;
+prec['-'] = 2;
+prec['0-'] = 3;
+prec['*'] = 3;
+prec['/'] = 3;
+prec['^'] = 4;
+prec['%'] = 10;
+prec['max'] = 10;
+prec['min'] = 10;
+prec['sum'] = 10;
+prec['sin'] = 10;
+prec['cos'] = 10;
+prec['tan'] = 10;
+prec['csc'] = 10;
+prec['sec'] = 10;
+prec['cot'] = 10;
+prec['ln'] = 10;
+prec['log'] = 10;
+prec['_'] = 11;
+
+function toInfixArray(input) {
+    const arr = [];
+    let str = "";
+    const functions = ["sin", "cos", "tan", "ln", "log", "e", "√", "π"];
+
+    for (let i = 0; i < input.length; i++) {
+        if ("+*/()^%,".includes(input[i])) {
+            if (str.length > 0) arr.push(str);
+            arr.push(input[i]);
+            str = "";
+        } else if (functions.some(fn => input.startsWith(fn, i))) {
+            let func = functions.find(fn => input.startsWith(fn, i));
+            if (str.length > 0) arr.push(str);
+            arr.push(func);
+            i += func.length - 1;
+            str = "";
+        } else {
+            str += input[i];
+        }
+    }
+    if (str.length > 0) arr.push(str);
+    return arr;
+}
+
+function toPostfixArray(input, max = -1) {
+    var stack = [];
+    var postfix = [];
+    var maxx = max;
+    if (maxx > input.length || maxx < 0) { maxx = input.length; }
+    
+    for (var i = 0; i < maxx; i++) {
+        if (prec[input[i]]) {
+            if (stack.length == 0) {
+                stack.push(input[i]);
+            } else if (input[i] == "0-") {
+                stack.push(input[i]);
+            } else if (prec[stack[stack.length - 1]] < prec[input[i]]) {
+                stack.push(input[i]);
+            } else if (stack[stack.length - 1] == "^" && input[i] == "^") {
+                stack.push(input[i]);
+            } else {
+                while (stack.length > 0 && prec[stack[stack.length - 1]] >= prec[input[i]]) {
+                    if (stack[stack.length - 1] == "^" && input[i] == "^") { break; }
+                    var last = stack[stack.length - 1];
+                    if (last == "0-" && isNumber(postfix[postfix.length - 1])) {
+                        postfix[postfix.length - 1] = "-" + postfix[postfix.length - 1];
+                    } else {
+                        postfix.push(last);
+                    }
+                    stack.pop();
+                }
+                stack.push(input[i]);
+            }
+        } else if (input[i] == '(' || input[i] == '{') {
+            stack.push(input[i]);
+        } else if (input[i] == ')') {
+            while (stack.length > 0 && stack[stack.length - 1] != "(") {
+                var last = stack[stack.length - 1];
+                if (last == "0-" && isNumber(postfix[postfix.length - 1])) {
+                    postfix[postfix.length - 1] = "-" + postfix[postfix.length - 1];
+                } else {
+                    postfix.push(last);
+                }
+                stack.pop();
+            }
+            stack.pop(); // Remove the '(' from the stack
+        } else if (input[i] == '}') {
+            while (stack.length > 0 && stack[stack.length - 1] != "{") {
+                var last = stack[stack.length - 1];
+                if (last == "0-" && isNumber(postfix[postfix.length - 1])) {
+                    postfix[postfix.length - 1] = "-" + postfix[postfix.length - 1];
+                } else {
+                    postfix.push(last);
+                }
+                stack.pop();
+            }
+            stack.pop(); // Remove the '{' from the stack
+        } else {
+            postfix.push(input[i]);
+        }
+    }
+    
+    if (max == -1) {
+        while (stack.length > 0) {
+            var last = stack[stack.length - 1];
+            if (last == "0-" && isNumber(postfix[postfix.length - 1])) {
+                postfix[postfix.length - 1] = "-" + postfix[postfix.length - 1];
+            } else {
+                postfix.push(last);
+            }
+            stack.pop();
+        }
+        return postfix;
+    }
+    return { postfix: postfix, stack: stack };
+}
+function evaluatePostfix(postfix) {
+    const stack = [];
+
+    for (let token of postfix) {
+        if (isNumber(token)) {
+            stack.push(parseFloat(token));
+        } else if (['sin', 'cos', 'tan', 'ln', 'log', 'e', '√', 'π'].includes(token)) {
+            const operand = stack.pop();
+            stack.push(calculateFunction(token, operand));
+        } else {
+            const b = stack.pop();
+            const a = stack.pop();
+            stack.push(calculateOperator(token, a, b));
+        }
+    }
+
+    return stack.pop();
+}
+
+function calculateFunction(fn, value) {
+    switch (fn) {
+        case 'sin': return Math.sin(value);
+        case 'cos': return Math.cos(value);
+        case 'tan': return Math.tan(value);
+        case 'ln': return Math.log(value);
+        case 'log': return Math.log10(value);
+        case 'e': return Math.exp(value);
+        case '√': return Math.sqrt(value);
+        case 'π': return Math.PI;
+        default: throw new Error(`Unknown function: ${fn}`);
+    }
+}
+
+function calculateOperator(op, a, b) {
+    switch (op) {
+        case '+': return a + b;
+        case '-': return a - b;
+        case '*': return a * b;
+        case '/': return a / b;
+        case '^': return Math.pow(a, b);
+        case '%': return a % b;
+        default: throw new Error(`Unknown operator: ${op}`);
+    }
+}
+
+// Helper function to check if a token is a number
+function isNumber(value) {
+    return !isNaN(value) && !isNaN(parseFloat(value));
+}
+
+        
+    </script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scientific Calculator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <article class="calculator">
+        <input type="text"  
+ id="display" disabled>
+        <section class="buttons">
+            <button class="operator" value="√">√</button> 
+            <button class="operator" value="sin">sin</button>
+            <button class="operator" value="cos">cos</button>
+            <button class="operator" value="tan">tan</button>
+            <button class="operator" value="π">π</button>
+            <button class="operator" value="log">log</button>
+            <button class="operator" value="exp">exp</button>
+            <button class="operator" value="ln">ln</button>
+            <button class="clearAll" value="AC">AC</button>
+            <button class="clear" value="C">C</button>
+            <button class="operator" value="(">(</button>
+            <button class="operator" value=")">)</button>
+            <button class="operator" value="DEL">DEL</button>
+            <button class="operator" value="Ans">Ans</button>
+            <button class="operator" value="/">/</button>
+            <button value="7">7</button>
+            <button value="8">8</button>  
+
+            <button value="9">9</button>
+            <button class="operator" value="*">*</button>
+            <button value="4">4</button>
+            <button value="5">5</button>
+            <button value="6">6</button>
+            <button class="operator" value="-">-</button>
+            <button value="1">1</button>
+            <button value="2">2</button>
+            <button value="3">3</button>
+            <button class="operator" value="+">+</button>  
+
+            <button value="0">0</button>
+            <button value=".">.</button>
+            <button class="equal" value="=">=</button>
+            
+
+        </section>  
+
+    </article>
+    <script>
+        const display = document.getElementById('display');
+const buttons = document.querySelectorAll('button');
+
+var curentInput = '';
+var prevInput = '';
+var operator = '';
+var PrevResult = '';
+var result = '';
+var displayValue = '';
+var BraketCount = 0;
+
+buttons.forEach(button => {
+    button.addEventListener('click', () => {
+        const value = button.value;
+
+        if (button.value === '=') {
+            try {
+                
+                if (curentInput && operator ) {
+                        result = Calculate(prevInput,curentInput,operator);
+                        display.value = result;
+                        prevInput = result;
+                        PrevResult = result;
+                        curentInput = '';
+                        operator = '';
+                }
+                
+                
+            } catch (error) {
+                display.value = 'Error';
+            }
+        }
+        else if (value === '(') {
+            parenthesisCount++;
+            currentInput += value;
+            display.value = currentInput;
+        }
+        else if (value === ')') {
+            if (parenthesisCount > 0) {
+              parenthesisCount--;
+              currentInput += value;
+              display.value = currentInput;
+            }
+            
+        }
+        else if (value === 'C') {
+            prevInput = '';
+            curentInput = '';
+            operator = '';
+            result = '';
+            display.value = '';
+        }
+        else if (value === 'AC') {
+            prevInput = '';
+            curentInput = '';
+            operator = '';
+            result = '';
+            prevResult = '';
+            display.value = '';
+        }
+        else if (value === 'DEL') {
+            curentInput= curentInput.slice(0, -1);
+            display.value = currentInput;
+
+        }
+        else if (['+','-','*','/','√','sin','tan','log','exp','ln','π','cos'].includes(value)) {
+            
+            operator = value;
+            displayValue = currentInput
+            prevInput = curentInput;
+            curentInput =+ value;
+            display.value = curentInput;
+            
+            
+
+        }
+        else if (value === 'Ans') {
+            curentInput += prevResult;
+            display.value = curentInput;
+        }
+        else {
+            curentInput += value;
+            displayValue = currentInput
+            display.value = curentInput;
+        }
+    });
+});
+
+function Calculate(a, b, operator){
+    a = Number(a);
+    b = Number(b);
+
+    switch (operator) {
+        case '+': return a + b;
+        case '-': return a - b;
+        case '*': return a * b;
+        case '/': return a / b;
+        case '%': return a % b;
+        case '√': return Math.sqrt(b);
+        case 'sin': return Math.sin(b);
+        case 'tan': return Math.tan(b);
+        case 'cos': return Math.cos(b);
+        case 'log': return Math.log10(b);
+        case 'ln': return Math.log(b);
+        case 'exp': return Math.exp(b);
+        case 'π': return Math.PI;
+        default: return 0;
+
+
+    }
+}
+    </script>
+</body>
+</html>
